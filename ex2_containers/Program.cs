@@ -1,16 +1,13 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-
-using ex2_containers;
+﻿using ex2_containers;
 
 // Stworzenie kontenera danego typu
 var conL = new L_Container(250,2.31,64,28.6,false);
 var conG = new G_Container(345,2.56,36,17.8,12.3);
-var conC = new C_Container(490,3.33,31,33.3,RefrigeratedProduct.Bananas,6.9);
+var conC = new C_Container(490,3.33,31,33.3,RefrigeratedProduct.Bananas,13.3);
 
 var conL1 = new L_Container(127,3.1,63,13.3,true);
 var conG1 = new G_Container(123,2.17,92,22.3,7);
-var conC1 = new C_Container(510,2.56,44,12.3,RefrigeratedProduct.FrozenPizza,-73);
+var conC1 = new C_Container(510,2.56,44,12.3,RefrigeratedProduct.FrozenPizza,-30);
 
 
 // Tworzenie statków
@@ -20,12 +17,14 @@ var evergreen2 = new CargoShip("EverGreen2",25, 3000, 13);
 Console.WriteLine("### Załadowanie ładunku do danego kontenera ###");
 foreach (var con in Container.GetAllContainers()) {
     
+    // metoda Load dla C_Container musi mieć trochę inną sygnaturę :(
     if (con.GetType() == typeof(C_Container)) {
         var prod = (con as C_Container).RefrigeratedProduct;
         (con as C_Container).Load( 
             double.Round(ThrowDice() * con.FreeKgCapacity,2), prod);
     }
     else {
+        // randomowa waga ładunku
         con.Load(double.Round(ThrowDice() * con.FreeKgCapacity,2));
     }
     // Wypisanie informacji o danym kontenerze
@@ -35,6 +34,7 @@ foreach (var con in Container.GetAllContainers()) {
 
 Console.WriteLine("### Załadowanie kontenera na statek ###");
 for (var i = 0; i < Container.GetAllContainers().Count; i++) {
+    // ładowanie na zmianę
     var correctShip = i%2 == 0 ? evergreen1 : evergreen2;
     correctShip.LoadContainer(Container.GetAllContainers()[i]);
 }
@@ -71,6 +71,7 @@ Console.WriteLine(evergreen1);
 
 
 Console.WriteLine("### Możliwość przeniesienie kontenera między dwoma statkami ###");
+// przygotowanie
 evergreen2.LoadContainer(conL);
 evergreen1.UnloadContainer([conC, conC1, conL1, conG1]);
 
@@ -79,7 +80,6 @@ Console.WriteLine(evergreen2);
 SwapContainers(conL, conG);
 Console.WriteLine(evergreen1);
 Console.WriteLine(evergreen2);
-
 
 
 
@@ -132,6 +132,8 @@ static void SwapContainers(Container leftCon, Container rightCon) {
     }
     
 }
+
+
 static double ThrowDice() {
     return Random.Shared.NextDouble();
 }

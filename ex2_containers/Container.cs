@@ -36,17 +36,20 @@ public abstract class Container {
     
     private ContainerType Type { get; }
     protected double NetWeight { get; set; }
-    private double Height { get; set; }
-    private double TareWeight { get; set; }
-    private double Depth { get; set; }
-    protected double MaxCapacity { get; }
-    protected string SerialNo { get; }
+    public double Height { get; private set; }
+    public double TareWeight { get; private set; }
+    public double Depth { get; private set; }
+    public double MaxCapacity { get; private set; }
+    public string SerialNo { get; init; }
 
+    
     // wyliczalne właściwości
     public double TotalContainerWeight => NetWeight + TareWeight;
     public double FreeKgCapacity => MaxCapacity - NetWeight;
+    
     public static IReadOnlyList<Container> GetAllContainers() => AllContainers.AsReadOnly();
     
+    // referencja do statku
     public CargoShip? AssignedShip  { get; private set; }
 
     
@@ -85,6 +88,7 @@ public abstract class Container {
 
     public void DeAssignFromShip(CargoShip ship) {
         if (this.AssignedShip != ship){ throw new InvalidOperationException("Ship validation failed. Operation aborted.");}
+        
         this.AssignedShip = null;
     }
     
@@ -100,27 +104,27 @@ public abstract class Container {
 
 // klasy dziedziczące
 public class L_Container : Container, IHazardNotifier {
-
-
+    
+    // może kiedyś będzie można zmienić te wartości
     private static double MaxCapacityMultipAdr { get; set; } = 0.5;
     private static double MaxCapacityMultipBase { get; set; } = 0.9;
     
     
-    private bool isAdr { get; set; }
+    public bool IsAdr { get; private set; }
 
     private double TrueCapacity =>
-        isAdr ?
+        IsAdr ?
              double.Round(L_Container.MaxCapacityMultipAdr * this.MaxCapacity, 2) :
              double.Round(L_Container.MaxCapacityMultipBase * this.MaxCapacity, 2);
     
 
     public L_Container(double maxCapacity, double height, double tareWeight, double depth, bool isADR)
         : base(ContainerType.L, maxCapacity, height, tareWeight, depth) {
-        this.isAdr = isADR;
+        this.IsAdr = isADR;
     }
 
     public override void Load(double massKg) {
-        if (massKg > TrueCapacity) {
+        if (massKg > this.TrueCapacity) {
             Notify($"Maximum safe capacity - {TrueCapacity} / {MaxCapacity} KG - exceeded! Operation aborted!");
             return;
         }
@@ -139,9 +143,10 @@ public class L_Container : Container, IHazardNotifier {
 
 public class G_Container : Container, IHazardNotifier {
     
+    // może kiedyś będzie można zmienić te wartości
     private static double UnloadingLeftover { get; set; } = 0.05;
     
-    private double Pressure { get; set; }
+    public double Pressure { get; private set; }
 
     public G_Container(double maxCapacity, double height, double tareWeight, double depth, double pressure)
         : base(ContainerType.G, maxCapacity, height, tareWeight, depth) {
@@ -149,13 +154,13 @@ public class G_Container : Container, IHazardNotifier {
     }
 
     public override void Unload() {
-        this.NetWeight = double.Round(UnloadingLeftover * this.NetWeight,2);
+        this.NetWeight = double.Round(G_Container.UnloadingLeftover * this.NetWeight,2);
     }
 
     public override void Load(double massKg) {
         
         // Wyślij informacje o zagrożeniu
-        if (massKg + NetWeight > MaxCapacity) {
+        if ((massKg + this.NetWeight) > this.MaxCapacity) {
             Notify("An attempt has been made to overfill a gas container!");
         }
         
@@ -174,10 +179,10 @@ public class G_Container : Container, IHazardNotifier {
 public class C_Container : Container {
     
     public RefrigeratedProduct RefrigeratedProduct { get; private set; }
-    public double TemperatureKept { get; private set; }
+    public double TemperatureKept { get;  private set; }
     
     private static readonly 
-        Dictionary<RefrigeratedProduct, double> MaxTemperatures = new() {
+        Dictionary<RefrigeratedProduct, double> ExpectedTemperatures = new() {
         { RefrigeratedProduct.Bananas, 13.3 },
         { RefrigeratedProduct.Chocolate, 18.0 },
         { RefrigeratedProduct.Fish, 2.0 },
@@ -194,12 +199,9 @@ public class C_Container : Container {
     :base(ContainerType.C, maxCapacity, height, tareWeight, depth) {
         
         this.RefrigeratedProduct = refrigeratedProduct;
-
-        // nie ma sensu, tak jak chciał klient:
-        // "Temperatury kontenera nie może być niższa niż temperatura wymagana przez dany rodzaj produktu."
-        // temperatura nie będzie wyższa niż określina w MaxTemperatures
-        if (temperatureKept > MaxTemperatures[RefrigeratedProduct]) {
-            throw new ArgumentException($"Temperature of the container is too high: {temperatureKept} / {MaxTemperatures[RefrigeratedProduct]}");
+        
+        if (Math.Abs(temperatureKept - C_Container.ExpectedTemperatures[RefrigeratedProduct]) > 0.001) {
+            throw new ArgumentException($"Temperature of the container is too high: {temperatureKept} / {ExpectedTemperatures[RefrigeratedProduct]}");
         }
         this.TemperatureKept = temperatureKept;
     }

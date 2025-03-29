@@ -3,13 +3,12 @@ namespace ex2_containers;
 public class CargoShip {
     private List<Container> _cargo  = [];
     
-    public string ShipName {get; init;}
-    public double MaxSpeed { get; init; }
-    public int MaxContainers { get; init; }
-    public double MaxWeightTones { get; init; }
+    public string ShipName {get; private set;}
+    public double MaxSpeed { get; private set; }
+    public int MaxContainers { get; private set; }
+    public double MaxWeightTones { get; private set; }
     
     public double MaxWeightKg => MaxWeightTones * 1000;
-
     public double CurrentCargoWeight => double.Round(this._cargo.Sum(c => c.TotalContainerWeight),2);
     public int FreeContainerSpace => MaxContainers - _cargo.Count; 
     
