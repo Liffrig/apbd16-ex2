@@ -47,7 +47,6 @@ public abstract class Container {
     public double FreeKgCapacity => MaxCapacity - NetWeight;
     public static IReadOnlyList<Container> GetAllContainers() => AllContainers.AsReadOnly();
     
-    // referencja do statku - potrzebna do 
     public CargoShip? AssignedShip  { get; private set; }
 
     
@@ -83,6 +82,11 @@ public abstract class Container {
         }
         AssignedShip = ship;
     }
+
+    public void DeAssignFromShip(CargoShip ship) {
+        if (this.AssignedShip != ship){ throw new InvalidOperationException("Ship validation failed. Operation aborted.");}
+        this.AssignedShip = null;
+    }
     
     
     public override string ToString() => $"""
@@ -103,6 +107,11 @@ public class L_Container : Container, IHazardNotifier {
     
     
     private bool isAdr { get; set; }
+
+    private double TrueCapacity =>
+        isAdr ?
+             double.Round(L_Container.MaxCapacityMultipAdr * this.MaxCapacity, 2) :
+             double.Round(L_Container.MaxCapacityMultipBase * this.MaxCapacity, 2);
     
 
     public L_Container(double maxCapacity, double height, double tareWeight, double depth, bool isADR)
@@ -111,13 +120,8 @@ public class L_Container : Container, IHazardNotifier {
     }
 
     public override void Load(double massKg) {
-     
-        var trueCapacity = this.isAdr ? 
-            double.Round(L_Container.MaxCapacityMultipAdr * this.MaxCapacity,2)  : 
-            double.Round(L_Container.MaxCapacityMultipBase * this.MaxCapacity,2);
-        
-        if (massKg > trueCapacity) {
-            Notify($"Maximum safe capacity - {trueCapacity} KG - exceeded! Operation aborted!");
+        if (massKg > TrueCapacity) {
+            Notify($"Maximum safe capacity - {TrueCapacity} / {MaxCapacity} KG - exceeded! Operation aborted!");
             return;
         }
         
@@ -145,7 +149,7 @@ public class G_Container : Container, IHazardNotifier {
     }
 
     public override void Unload() {
-        this.NetWeight = double.Round(UnloadingLeftover * this.NetWeight);
+        this.NetWeight = double.Round(UnloadingLeftover * this.NetWeight,2);
     }
 
     public override void Load(double massKg) {
